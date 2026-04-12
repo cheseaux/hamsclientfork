@@ -29,7 +29,7 @@ _HEADERS = {
 }
 
 MS_BASE_URL = "https://www.meteosuisse.admin.ch"
-JSON_FORECAST_URL = "https://app-prod-ws.meteoswiss-app.ch/v2/forecast?plz={}00&graph_startLowResolution=true&warning=true"
+JSON_FORECAST_URL = "https://app-prod-ws.meteoswiss-app.ch/v2/forecast?plz={}&graph_startLowResolution=true&warning=true"
 MS_SEARCH_URL = "https://www.meteosuisse.admin.ch/home/actualite/infos.html?ort={}&pageIndex=0&tab=search_tab"
 CURRENT_CONDITION_URL = (
     "https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA80.csv"
@@ -42,7 +42,7 @@ STATION_TYPE_PRECIPITATION = "Précipitation"
 STATION_TYPE_WEATHER = "Station météo"
 
 MS_24FORECAST_URL = (
-    "https://www.meteosuisse.admin.ch/product/output/forecast-chart/{}/fr/{}00.json"
+    "https://www.meteosuisse.admin.ch/product/output/forecast-chart/{}/fr/{}.json"
 )
 MS_24FORECAST_REF = "https://www.meteosuisse.admin.ch//content/meteoswiss/fr/home.mobile.meteo-products--overview.html"
 
@@ -219,7 +219,7 @@ def ClientResult_from_meteoswiss_data(data: dict[str, Any]) -> ClientResult:
 class meteoSwissClient:
     def __init__(self, displayName=None, postcode=None, *station: str):
         _LOGGER.debug("MS Client INIT")
-        self._postCode = postcode
+        self._postCode = postcode if len(postcode) > 4 else f"{postcode}00"
         self._stations = station
         self._name = displayName
         self._allStations: dict[str, Any] | None = None
