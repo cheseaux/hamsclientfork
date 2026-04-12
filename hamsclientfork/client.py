@@ -421,18 +421,17 @@ class meteoSwissClient:
             _LOGGER.warning("Unable to find station name for : %s" % (stationId))
             return None
 
-    def __get_all_forecast_points(self) -> list[str, str]:
+    def __get_all_forecast_points(self) -> list[dict[str, str]]:
         """Fetch and cache the official MeteoSwiss forecast point metadata.
 
         Returns a list of point_id (the 6-digit locality code) and corresponding locality name
         """
         _LOGGER.debug("Fetching forecast point metadata from %s", FORECAST_POINTS_URL)
-        with requests.get(FORECAST_POINTS_URL, headers=_HEADERS, timeout=10) as response:
+        with requests.get(FORECAST_POINTS_URL) as response:
             response.raise_for_status()
             response.encoding = "utf-8"
             lines = response.text.split("\n")
-            csv_reader = csv.DictReader(lines, delimiter=";")
-            return [row for row in csv_reader if row]
+            return list(csv.DictReader(lines, delimiter=";"))
 
     def get_localities_for_postcode(self, postcode: str) -> dict[str, str]:
         """Return all localities that belong to a given 4-digit postal code.
