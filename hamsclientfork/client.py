@@ -46,6 +46,7 @@ MS_24FORECAST_URL = (
 )
 MS_24FORECAST_REF = "https://www.meteosuisse.admin.ch//content/meteoswiss/fr/home.mobile.meteo-products--overview.html"
 
+FORECAST_POINTS_URL = "https://data.geo.admin.ch/ch.meteoschweiz.ogd-local-forecasting/ogd-local-forcasting_meta_point.csv"
 
 class CurrentWeather(TypedDict):
     time: int
@@ -90,16 +91,16 @@ def HourlyForecast_from_meteoswiss_data(data: dict[str, Any]) -> list[HourlyFore
     )
     results: list[HourlyForecast] = []
     for idx in range(
-        min(
-            [
-                len(data["temperatureMin1h"]),
-                len(data["temperatureMax1h"]),
-                len(data["temperatureMean1h"]),
-                len(data["precipitationMin1h"]),
-                len(data["precipitationMean1h"]),
-                len(data["precipitationMax1h"]),
-            ]
-        )
+            min(
+                [
+                    len(data["temperatureMin1h"]),
+                    len(data["temperatureMax1h"]),
+                    len(data["temperatureMean1h"]),
+                    len(data["precipitationMin1h"]),
+                    len(data["precipitationMean1h"]),
+                    len(data["precipitationMax1h"]),
+                ]
+            )
     ):
         d = HourlyForecast(
             time=time,
@@ -219,10 +220,12 @@ def ClientResult_from_meteoswiss_data(data: dict[str, Any]) -> ClientResult:
 class meteoSwissClient:
     def __init__(self, displayName=None, postcode=None, *station: str):
         _LOGGER.debug("MS Client INIT")
+        postcode = str(postcode)
         self._postCode = postcode if len(postcode) > 4 else f"{postcode}00"
         self._stations = station
         self._name = displayName
         self._allStations: dict[str, Any] | None = None
+        self._forecastPoints: list[dict[str, str]] | None = None
         self._condition = None
         self._conditions: dict[str, Any] = {}
         self._precipitation = None
@@ -347,8 +350,8 @@ class meteoSwissClient:
         stationList = {}
         for line in data:
             if (
-                line["Type de station"] != STATION_TYPE_PRECIPITATION
-                and line["Type de station"] != STATION_TYPE_WEATHER
+                    line["Type de station"] != STATION_TYPE_PRECIPITATION
+                    and line["Type de station"] != STATION_TYPE_WEATHER
             ):
                 continue
             stationData = {}
@@ -367,8 +370,8 @@ class meteoSwissClient:
         return stationList
 
     def get_all_stations(
-        self,
-        station_type=StationType | None,
+            self,
+            station_type=StationType | None,
     ) -> dict[str, Any]:
         if self._allStations is None:
             self._allStations = self.__get_all_stations()
@@ -380,7 +383,7 @@ class meteoSwissClient:
         return s
 
     def get_closest_station(
-        self, currentLat, currnetLon, station_type=StationType | None
+            self, currentLat, currnetLon, station_type=StationType | None
     ):
         hPoint = geopy.Point(currentLat, currnetLon)
         data = []
@@ -417,6 +420,45 @@ class meteoSwissClient:
         except Exception:
             _LOGGER.warning("Unable to find station name for : %s" % (stationId))
             return None
+
+    def __get_all_forecast_points(self) -> list[str, str]:
+        """Fetch and cache the official MeteoSwiss forecast point metadata.
+
+        Returns a list of point_id (the 6-digit locality code) and corresponding locality name
+        """
+        _LOGGER.debug("Fetching forecast point metadata from %s", FORECAST_POINTS_URL)
+        with requests.get(FORECAST_POINTS_URL, headers=_HEADERS, timeout=10) as response:
+            response.raise_for_status()
+            response.encoding = "utf-8"
+            lines = response.text.split("\n")
+            csv_reader = csv.DictReader(lines, delimiter=";")
+            return [row for row in csv_reader if row]
+
+    def get_localities_for_postcode(self, postcode: str) -> dict[str, str]:
+        """Return all localities that belong to a given 4-digit postal code.
+        """
+        if self._forecastPoints is None:
+            self._forecastPoints = self.__get_all_forecast_points()
+
+        localities: dict[str, str] = {}
+        for row in self._forecastPoints:
+            point_id = row.get("point_id", "").strip()
+            postal_code = row.get("postal_code", "").strip()
+            name = row.get("point_name", "").strip()
+
+            if postal_code != postcode:
+                continue
+
+            label = f"{postcode} {name}"
+            localities[label] = point_id
+
+        _LOGGER.debug(
+            "get_localities_for_postcode(%s): found %d localities: %s",
+            postcode,
+            len(localities),
+            localities,
+        )
+        return localities
 
     def getGeoData(self, lat, lon, user_agent=None):
         s = requests.Session()
