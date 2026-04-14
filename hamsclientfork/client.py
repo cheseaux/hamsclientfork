@@ -441,6 +441,11 @@ class meteoSwissClient:
         if self._forecastPoints is None:
             self._forecastPoints = self.__get_all_forecast_points()
 
+
+        _LOGGER.warning("get_localities_for_postcode for postcode: %s", postcode)
+        _LOGGER.warning(self._forecastPoints)
+
+
         localities: dict[str, str] = {}
         for row in self._forecastPoints:
             point_id = row.get("point_id", "").strip()
