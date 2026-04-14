@@ -9,6 +9,9 @@ import csv
 from bs4 import BeautifulSoup
 from enum import Enum
 from typing import Any, TypedDict
+from pathlib import Path
+
+_LOCAL_FORECAST_POINTS_FILE = "ogd-local-forcasting_meta_point.csv"
 
 
 class StationType(str, Enum):
@@ -426,12 +429,11 @@ class meteoSwissClient:
 
         Returns a list of point_id (the 6-digit locality code) and corresponding locality name
         """
-        _LOGGER.debug("Fetching forecast point metadata from %s", FORECAST_POINTS_URL)
-        with requests.get(FORECAST_POINTS_URL) as response:
-            response.raise_for_status()
-            response.encoding = "utf-8"
-            lines = response.text.split("\n")
-            return list(csv.DictReader(lines, delimiter=";"))
+        csv_path = Path(__file__).resolve().parent / _LOCAL_FORECAST_POINTS_FILE
+        _LOGGER.warning("Loading forecast point metadata from local file: %s", csv_path)
+
+        with csv_path.open("r", encoding="utf-8") as f:
+            return list(csv.DictReader(f, delimiter=";"))
 
     def get_localities_for_postcode(self, postcode: str) -> dict[str, str]:
         """Return all localities that belong to a given 4-digit postal code.
