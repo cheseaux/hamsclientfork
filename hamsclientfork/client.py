@@ -25,10 +25,10 @@ _LOGGER = logging.getLogger(__name__)
 
 _HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;"
-    "q=0.9,image/webp,*/*;q=0.8",
+              "q=0.9,image/webp,*/*;q=0.8",
     "Accept-Encoding": "gzip, deflate, sdch",
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML"
-    ", like Gecko) Chrome/1337 Safari/537.36",
+                  ", like Gecko) Chrome/1337 Safari/537.36",
 }
 
 MS_BASE_URL = "https://www.meteosuisse.admin.ch"
@@ -50,6 +50,7 @@ MS_24FORECAST_URL = (
 MS_24FORECAST_REF = "https://www.meteosuisse.admin.ch//content/meteoswiss/fr/home.mobile.meteo-products--overview.html"
 
 FORECAST_POINTS_URL = "https://data.geo.admin.ch/ch.meteoschweiz.ogd-local-forecasting/ogd-local-forcasting_meta_point.csv"
+
 
 class CurrentWeather(TypedDict):
     time: int
@@ -441,10 +442,8 @@ class meteoSwissClient:
         if self._forecastPoints is None:
             self._forecastPoints = self.__get_all_forecast_points()
 
-
         _LOGGER.warning("get_localities_for_postcode for postcode: %s", postcode)
         _LOGGER.warning(self._forecastPoints)
-
 
         localities: dict[str, str] = {}
         for row in self._forecastPoints:
@@ -452,13 +451,13 @@ class meteoSwissClient:
             postal_code = row.get("postal_code", "").strip()
             name = row.get("point_name", "").strip()
 
-            if postal_code != postcode:
+            if postal_code != str(postcode):
                 continue
 
             label = f"{postcode} {name}"
             localities[label] = point_id
 
-        _LOGGER.debug(
+        _LOGGER.warning(
             "get_localities_for_postcode(%s): found %d localities: %s",
             postcode,
             len(localities),
